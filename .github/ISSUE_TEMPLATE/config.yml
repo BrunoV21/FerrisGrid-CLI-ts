@@ -1,0 +1,8 @@
+blank_issues_enabled: false
+contact_links:
+  - name: Feature requests and protocol changes
+    url: https://github.com/BrunoV21/FerrisGrid-CLI/issues/new?template=feature_request.yml
+    about: Propose new FerrisGrid commands, backends, workflows, integrations, or protocol changes in the canonical Rust repository.
+  - name: Official FerrisGrid documentation
+    url: https://github.com/BrunoV21/FerrisGrid-CLI/tree/main/docs/official
+    about: Read the official docs before opening setup and usage questions.

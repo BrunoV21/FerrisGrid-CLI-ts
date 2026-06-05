@@ -1,0 +1,225 @@
+name: Release
+
+on:
+  push:
+    tags:
+      - "v*.*.*"
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Existing TypeScript mirror release tag, for example v0.2.0"
+        required: true
+        type: string
+
+permissions:
+  contents: write
+  id-token: write
+
+concurrency:
+  group: npm-release-${{ inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  NODE_VERSION: "20"
+  RUST_REPOSITORY: BrunoV21/FerrisGrid-CLI
+
+jobs:
+  release-notes:
+    name: Validate Rust-matched release notes
+    runs-on: ubuntu-24.04
+    outputs:
+      version: ${{ steps.validate.outputs.version }}
+      tag_name: ${{ steps.validate.outputs.tag_name }}
+    steps:
+      - name: Checkout TypeScript package
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Resolve tag and validate package version
+        id: validate
+        shell: bash
+        env:
+          TAG_NAME: ${{ inputs.tag || github.ref_name }}
+        run: |
+          set -euo pipefail
+          version="${TAG_NAME#v}"
+          package_version="$(node -p "require('./package.json').version")"
+          if [ "$version" != "$package_version" ]; then
+            echo "Release tag $TAG_NAME does not match package.json version $package_version" >&2
+            exit 1
+          fi
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "tag_name=$TAG_NAME" >> "$GITHUB_OUTPUT"
+
+      - name: Checkout matching Rust release tag
+        uses: actions/checkout@v6
+        with:
+          repository: ${{ env.RUST_REPOSITORY }}
+          ref: ${{ steps.validate.outputs.tag_name }}
+          path: rust-release
+
+      - name: Extract Rust release notes for matching tag
+        shell: bash
+        env:
+          TAG_NAME: ${{ steps.validate.outputs.tag_name }}
+          RUST_REPOSITORY: ${{ env.RUST_REPOSITORY }}
+        run: |
+          set -euo pipefail
+          notes_file="rust-release/docs/official/releases/${TAG_NAME}.md"
+          body_file="/tmp/github-release-notes.md"
+
+          if [ ! -f "$notes_file" ]; then
+            echo "Missing Rust release notes file: $notes_file" >&2
+            exit 1
+          fi
+
+          awk '
+            /<!-- release-notes:start -->/ { emit=1; next }
+            /<!-- release-notes:end -->/ { emit=0 }
+            emit { print }
+          ' "$notes_file" > "$body_file"
+
+          if ! grep -q '[^[:space:]]' "$body_file"; then
+            echo "Rust release notes must contain non-empty content between release-notes markers" >&2
+            exit 1
+          fi
+
+          rust_release_url="https://github.com/${RUST_REPOSITORY}/releases/tag/${TAG_NAME}"
+          if ! grep -Fq "$rust_release_url" "$body_file"; then
+            echo "Rust release notes must link to $rust_release_url" >&2
+            exit 1
+          fi
+
+      - name: Upload release notes body
+        uses: actions/upload-artifact@v7
+        with:
+          name: release-notes
+          path: /tmp/github-release-notes.md
+          if-no-files-found: error
+          retention-days: 7
+
+  package:
+    name: Build, test, and pack npm package
+    runs-on: ubuntu-24.04
+    needs: release-notes
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build
+        run: npm run build
+
+      - name: Test
+        run: npm test
+
+      - name: Pack dry run
+        run: npm run pack:dry-run
+
+      - name: Create package tarball
+        run: npm pack
+
+      - name: Upload package artifact
+        uses: actions/upload-artifact@v7
+        with:
+          name: npm-package
+          path: ferrisgrid-cli-*.tgz
+          if-no-files-found: error
+          retention-days: 7
+
+  npm:
+    name: Publish npm package
+    runs-on: ubuntu-24.04
+    needs:
+      - release-notes
+      - package
+    permissions:
+      contents: read
+      id-token: write
+    steps:
+      - name: Setup Node.js
+        uses: actions/setup-node@v6
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          registry-url: https://registry.npmjs.org
+
+      - name: Download package artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: npm-package
+          path: release-artifacts
+
+      - name: Publish npm package
+        shell: bash
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          VERSION: ${{ needs.release-notes.outputs.version }}
+        run: |
+          set -euo pipefail
+          if npm view "ferrisgrid-cli@${VERSION}" version >/dev/null 2>&1; then
+            echo "ferrisgrid-cli ${VERSION} is already published; skipping"
+            exit 0
+          fi
+          package="release-artifacts/ferrisgrid-cli-${VERSION}.tgz"
+          if [ ! -f "$package" ]; then
+            echo "Missing package artifact: $package" >&2
+            exit 1
+          fi
+          npm publish "$package" --provenance --access public
+
+  github-release:
+    name: Publish TypeScript GitHub release
+    runs-on: ubuntu-24.04
+    needs:
+      - release-notes
+      - package
+      - npm
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+        with:
+          ref: ${{ inputs.tag || github.ref }}
+          fetch-depth: 0
+
+      - name: Download package artifact
+        uses: actions/download-artifact@v7
+        with:
+          name: npm-package
+          path: release-artifacts
+
+      - name: Download release notes
+        uses: actions/download-artifact@v7
+        with:
+          name: release-notes
+          path: release-notes
+
+      - name: Generate checksums
+        run: |
+          find release-artifacts -type f -print0 | sort -z | xargs -0 sha256sum > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Publish release
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG_NAME: ${{ needs.release-notes.outputs.tag_name }}
+        run: |
+          set -euo pipefail
+          body_file="release-notes/github-release-notes.md"
+          assets="$(find release-artifacts -type f | sort)"
+          if gh release view "$TAG_NAME" >/dev/null 2>&1; then
+            gh release upload "$TAG_NAME" $assets SHA256SUMS --clobber
+            gh release edit "$TAG_NAME" --notes-file "$body_file"
+          else
+            gh release create "$TAG_NAME" $assets SHA256SUMS --verify-tag --title "$TAG_NAME" --notes-file "$body_file"
+          fi

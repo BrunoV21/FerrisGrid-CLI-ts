@@ -1,0 +1,36 @@
+name: Question, docs, or packaging issue
+description: Ask a question or report documentation, npm packaging, or repository-maintenance issues.
+title: "Other: "
+labels:
+  - triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Use this template for TypeScript package questions, docs fixes, npm packaging feedback, and repository-maintenance issues.
+
+        Please do not use this repository for new FerrisGrid features or protocol changes. Open those in the Rust repository instead: https://github.com/BrunoV21/FerrisGrid-CLI/issues/new?template=feature_request.yml
+  - type: dropdown
+    id: kind
+    attributes:
+      label: Issue type
+      options:
+        - Question or usage help
+        - Documentation fix
+        - npm packaging or release metadata
+        - Repository maintenance
+        - Other
+    validations:
+      required: true
+  - type: textarea
+    id: details
+    attributes:
+      label: Details
+      description: What are you trying to understand, fix, or report?
+    validations:
+      required: true
+  - type: textarea
+    id: context
+    attributes:
+      label: Context
+      description: Include OS, Node.js version, install method, command output, docs page, or package version when relevant.
