@@ -5,6 +5,7 @@
 
   <p>
     <img alt="License: MIT" src="https://img.shields.io/badge/license-MIT-8A2BE2?style=for-the-badge" />
+    <a href="https://brunov21.github.io/FerrisGrid-CLI/"><img alt="Official documentation" src="https://img.shields.io/badge/docs-official-8A2BE2?style=for-the-badge" /></a>
     <img alt="Node.js 20 or newer" src="https://img.shields.io/badge/node.js-20%2B-00E5FF?style=for-the-badge&amp;logo=nodedotjs&amp;logoColor=white" />
     <img alt="npm package" src="https://img.shields.io/badge/npm-ferrisgrid--cli-A970FF?style=for-the-badge&amp;logo=npm&amp;logoColor=white" />
     <img alt="TypeScript mirror" src="https://img.shields.io/badge/typescript-mirror-111111?style=for-the-badge&amp;logo=typescript&amp;logoColor=white" />
