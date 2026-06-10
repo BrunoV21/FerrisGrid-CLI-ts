@@ -12,8 +12,6 @@
   </p>
 </div>
 
-Date: 2026-06-05
-
 FerrisGrid captures the current screen, maps it to deterministic coordinates, returns compact Markdown to an agent, executes one constrained action, captures the result, and exits. The agent does the reasoning. FerrisGrid handles the screen, coordinates, input, and local trace.
 
 This repository contains the TypeScript npm package mirror of the Rust CLI. Protocol changes and new feature design should happen in the canonical Rust repository first: [`BrunoV21/FerrisGrid-CLI`](https://github.com/BrunoV21/FerrisGrid-CLI).
