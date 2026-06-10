@@ -176,7 +176,7 @@ jobs:
             echo "Missing package artifact: $package" >&2
             exit 1
           fi
-          npm publish "$package" --provenance --access public
+          npm publish "./$package" --provenance --access public
 
   github-release:
     name: Publish TypeScript GitHub release
