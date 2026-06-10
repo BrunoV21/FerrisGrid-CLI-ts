@@ -174,8 +174,9 @@ Fallback behavior:
 ## Documentation
 
 - Official FerrisGrid docs: [`docs/official`](https://github.com/BrunoV21/FerrisGrid-CLI/tree/main/docs/official)
+- Raw Markdown index for agents: [`docs/official/agents.md`](https://raw.githubusercontent.com/BrunoV21/FerrisGrid-CLI/main/docs/official/agents.md)
 - Command docs: [`docs/official/commands`](https://github.com/BrunoV21/FerrisGrid-CLI/tree/main/docs/official/commands)
-- Agent protocol: [`docs/official/agents.md`](https://github.com/BrunoV21/FerrisGrid-CLI/blob/main/docs/official/agents.md)
+- Agent protocol: [`docs/official/concepts/agent-protocol.md`](https://github.com/BrunoV21/FerrisGrid-CLI/blob/main/docs/official/concepts/agent-protocol.md)
 - Release notes: [`docs/official/releases`](https://github.com/BrunoV21/FerrisGrid-CLI/tree/main/docs/official/releases)
 - TypeScript behavior oracle: [`docs/rust-oracle.md`](docs/rust-oracle.md)
 - Canonical Rust README: [`BrunoV21/FerrisGrid-CLI`](https://github.com/BrunoV21/FerrisGrid-CLI)
